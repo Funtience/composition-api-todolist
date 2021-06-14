@@ -7,16 +7,17 @@
         placeholder="What needs to be done?"
         autocomplete="off"
         autofocus
+        v-model="input"
       />
     </header>
     <section class="main">
       <input id="toggle-all" class="toggle-all" type="checkbox" />
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
-        <li>
+        <li v-for="(todo, index) in todos" :key="index">
           <div class="view">
             <input class="toggle" type="checkbox" />
-            <label>测试数据</label>
+            <label>{{ todo.text }}</label>
             <button class="destroy"></button>
           </div>
           <input class="edit" type="text" />
@@ -50,10 +51,37 @@
 
 <script>
 import './assets/index.css'
+import { ref } from 'vue'
+
+// 1. 添加待办事项
+const useAdd = (todos) => {
+  const input = ref('')
+
+  const addTodo = () => {
+    let text = input.value.trim()
+    if (text.length) {
+      todos.value.unshift({
+        text,
+        completed: false,
+      })
+    }
+  }
+
+  return {
+    input,
+    addTodo,
+  }
+}
 
 export default {
   name: 'App',
-  setup() {},
+  setup() {
+    const todos = ref([])
+
+    return {
+      ...useAdd(todos),
+    }
+  },
 }
 </script>
 
