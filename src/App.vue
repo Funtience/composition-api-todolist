@@ -23,7 +23,7 @@
         <li
           v-for="(todo, index) in filteredTodos"
           :key="index"
-          :class="{ editing: editingTodo === todo }"
+          :class="{ editing: editingTodo === todo, completed: todo.completed }"
         >
           <div class="view">
             <input class="toggle" type="checkbox" v-model="todo.completed" />
@@ -73,7 +73,10 @@
 
 <script>
 import './assets/index.css'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+import useLocalStorage from './utils/useLocalStorage'
+
+const storage = useLocalStorage()
 
 // 1. 添加待办事项
 const useAdd = (todos) => {
@@ -192,10 +195,23 @@ const useFilter = (todos) => {
   }
 }
 
+// 5. 存储待办事项
+const useStorage = () => {
+  const KEY = 'TODOKEYS'
+
+  const todos = ref(storage.getItem(KEY) || [])
+
+  watchEffect(() => {
+    storage.setItem(KEY, todos.value)
+  })
+
+  return todos
+}
+
 export default {
   name: 'App',
   setup() {
-    const todos = ref([])
+    const todos = useStorage()
     const { delTodo, clearCompleted } = useDel(todos)
 
     return {
