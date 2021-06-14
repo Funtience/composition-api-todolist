@@ -15,13 +15,25 @@
       <input id="toggle-all" class="toggle-all" type="checkbox" />
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
-        <li v-for="(todo, index) in todos" :key="index">
+        <li
+          v-for="(todo, index) in todos"
+          :key="index"
+          :class="{ editing: editingTodo === todo }"
+        >
           <div class="view">
             <input class="toggle" type="checkbox" />
-            <label>{{ todo.text }}</label>
+            <label @dblclick="editTodo(todo)">{{ todo.text }}</label>
             <button class="destroy" @click="delTodo(todo)"></button>
           </div>
-          <input class="edit" type="text" />
+          <input
+            class="edit"
+            type="text"
+            v-editing-focus="editingTodo === todo"
+            v-model="todo.text"
+            @keyup.enter="editDone(todo)"
+            @blur="editDone(todo)"
+            @keyup.esc="cancelEdit(todo)"
+          />
         </li>
       </ul>
     </section>
@@ -87,16 +99,52 @@ const useDel = (todos) => {
   }
 }
 
+// 3. 编辑待办事项
+const useEdit = (delTodo) => {
+  const editingTodo = ref(null)
+  let beforeEditingText = ''
+
+  const editTodo = (todo) => {
+    editingTodo.value = todo
+    beforeEditingText = todo.text
+  }
+
+  const editDone = (todo) => {
+    let text = todo.text.trim()
+    text.length || delTodo(todo)
+    editingTodo.value = null
+  }
+
+  const cancelEdit = (todo) => {
+    editingTodo.value = null
+    todo.text = beforeEditingText
+  }
+
+  return {
+    editingTodo,
+    editTodo,
+    editDone,
+    cancelEdit,
+  }
+}
+
 export default {
   name: 'App',
   setup() {
     const todos = ref([])
+    const { delTodo } = useDel(todos)
 
     return {
       ...useAdd(todos),
-      ...useDel(todos),
+      delTodo,
       todos,
+      ...useEdit(delTodo),
     }
+  },
+  directives: {
+    editingFocus: (el, binding) => {
+      binding.value && el.focus()
+    },
   },
 }
 </script>
