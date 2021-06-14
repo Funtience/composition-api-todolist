@@ -8,6 +8,7 @@
         autocomplete="off"
         autofocus
         v-model="input"
+        @keyup.enter="addTodo"
       />
     </header>
     <section class="main">
@@ -18,7 +19,7 @@
           <div class="view">
             <input class="toggle" type="checkbox" />
             <label>{{ todo.text }}</label>
-            <button class="destroy"></button>
+            <button class="destroy" @click="delTodo(todo)"></button>
           </div>
           <input class="edit" type="text" />
         </li>
@@ -64,12 +65,25 @@ const useAdd = (todos) => {
         text,
         completed: false,
       })
+      input.value = ''
     }
   }
 
   return {
     input,
     addTodo,
+  }
+}
+
+// 2. 删除待办事项
+const useDel = (todos) => {
+  const delTodo = (todo) => {
+    const index = todos.value.findIndex((t) => t === todo)
+    todos.value.splice(index, 1)
+  }
+
+  return {
+    delTodo,
   }
 }
 
@@ -80,6 +94,8 @@ export default {
 
     return {
       ...useAdd(todos),
+      ...useDel(todos),
+      todos,
     }
   },
 }
