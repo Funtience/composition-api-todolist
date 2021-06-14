@@ -11,17 +11,22 @@
         @keyup.enter="addTodo"
       />
     </header>
-    <section class="main">
-      <input id="toggle-all" class="toggle-all" type="checkbox" />
+    <section class="main" v-show="count">
+      <input
+        id="toggle-all"
+        class="toggle-all"
+        type="checkbox"
+        v-model="allDone"
+      />
       <label for="toggle-all">Mark all as complete</label>
       <ul class="todo-list">
         <li
-          v-for="(todo, index) in todos"
+          v-for="(todo, index) in filteredTodos"
           :key="index"
           :class="{ editing: editingTodo === todo }"
         >
           <div class="view">
-            <input class="toggle" type="checkbox" />
+            <input class="toggle" type="checkbox" v-model="todo.completed" />
             <label @dblclick="editTodo(todo)">{{ todo.text }}</label>
             <button class="destroy" @click="delTodo(todo)"></button>
           </div>
@@ -37,17 +42,21 @@
         </li>
       </ul>
     </section>
-    <footer class="footer">
+    <footer class="footer" v-show="count">
       <span class="todo-count">
-        <strong>1</strong>
-        item left
+        <strong>{{ remainingCount }}</strong>
+        {{ remainingCount > 1 ? 'items' : 'item' }} left
       </span>
       <ul class="filters">
         <li><a href="#/all">All</a></li>
         <li><a href="#/active">Active</a></li>
         <li><a href="#/completed">Completed</a></li>
       </ul>
-      <button class="clear-completed">
+      <button
+        class="clear-completed"
+        v-show="count > remainingCount"
+        @click="clearCompleted"
+      >
         Clear completed
       </button>
     </footer>
@@ -64,7 +73,7 @@
 
 <script>
 import './assets/index.css'
-import { ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 // 1. 添加待办事项
 const useAdd = (todos) => {
@@ -94,8 +103,13 @@ const useDel = (todos) => {
     todos.value.splice(index, 1)
   }
 
+  const clearCompleted = () => {
+    todos.value = todos.value.filter((todo) => !todo.completed)
+  }
+
   return {
     delTodo,
+    clearCompleted,
   }
 }
 
@@ -128,17 +142,69 @@ const useEdit = (delTodo) => {
   }
 }
 
+// 4. 切换待办事项
+const useFilter = (todos) => {
+  const allDone = computed({
+    get() {
+      return todos.value.every((todo) => todo.completed)
+    },
+    set(value) {
+      todos.value.forEach((todo) => (todo.completed = value))
+    },
+  })
+
+  const filter = {
+    all: (list) => list,
+    active: (list) => list.filter((item) => !item.completed),
+    completed: (list) => list.filter((item) => item.completed),
+  }
+  const type = ref('all')
+  const filteredTodos = computed(() => filter[type.value](todos.value))
+  const count = computed(() => todos.value.length)
+  const remainingCount = computed(
+    () => todos.value.filter((todo) => !todo.completed).length
+  )
+
+  const onHashChange = () => {
+    const hash = window.location.hash.replace('#/', '')
+    if (filter[hash]) {
+      type.value = hash
+    } else {
+      type.value = 'all'
+      window.location.hash = ''
+    }
+  }
+
+  onMounted(() => {
+    window.addEventListener('hashchange', onHashChange)
+    onHashChange()
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('hashchange', onHashChange)
+  })
+
+  return {
+    allDone,
+    filteredTodos,
+    count,
+    remainingCount,
+  }
+}
+
 export default {
   name: 'App',
   setup() {
     const todos = ref([])
-    const { delTodo } = useDel(todos)
+    const { delTodo, clearCompleted } = useDel(todos)
 
     return {
       ...useAdd(todos),
       delTodo,
+      clearCompleted,
       todos,
       ...useEdit(delTodo),
+      ...useFilter(todos),
     }
   },
   directives: {
